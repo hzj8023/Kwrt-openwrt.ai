@@ -50,27 +50,33 @@ jobs:
 
       - name: Trigger Packages Update
       continue-on-error: true
-        run: |
+      run: |
           set +e
-          resp=$(curl -H "Authorization: token $TOKEN_KIDDIN9" -s "https://api.github.com/repos/kiddin9/kwrt-packages/actions/runs")
+          API_URL="https://api.github.com/repos/kiddin9/kwrt-packages/actions/runs"
+          resp=$(curl -H "Authorization: token $TOKEN_KIDDIN9" -s "$API_URL")
           gitdate=$(echo "$resp" | jq -r '.workflow_runs[0].created_at')
 
           if [[ "$gitdate" == "null" || -z "$gitdate" ]]; then
-            echo "未查询到上游运行记录，跳过触发"
+            echo "上游无运行记录，跳过触发"
             exit 0
           fi
 
-          git_ts=$(date -d "$gitdate" +%s)
+          git_ts=$(date -d "$gitdate" +%s 2>/dev/null)
           now_ts=$(date +%s)
+          
+          if [[ -z "$git_ts" ]]; then
+            echo "时间解析失败，跳过触发"
+            exit 0
+          fi
 
           if [[ $((git_ts + 120)) -lt $now_ts ]]; then
-            echo "满足间隔条件，触发上游更新"
+            echo "间隔满足，触发上游更新"
             curl -X POST https://api.github.com/repos/kiddin9/kwrt-packages/dispatches \
               -H "Accept: application/vnd.github.everest-preview+json" \
               -H "Authorization: token $TOKEN_KIDDIN9" \
               --data '{"event_type": "update"}'
           else
-            echo "距离上次构建不足120秒，无需触发"
+            echo "间隔不足120秒，无需触发"
           fi
         env:
           TOKEN_KIDDIN9: ${{ secrets.TOKEN_KIDDIN9 }}
