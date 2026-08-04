@@ -59,6 +59,9 @@ jobs:
         -H "Authorization: token ${{ secrets.TOKEN_KIDDIN9 }}" \
         --data '{"event_type": "update"}'
         fi
+        shell: /usr/bin/bash -e {0}
+        env:
+          TOKEN_KIDDIN9: ${{ secrets.TOKEN_KIDDIN9 }}
 
     - name: Trigger Compile
       run: |
